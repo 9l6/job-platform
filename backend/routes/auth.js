@@ -1,10 +1,13 @@
-import User from "../models/User.js";
-import { sendOtpEmail } from "../services/mailtrapApi.js"; // عدّل المسار إذا مختلف
+import express from "express";
+import User from "../models/User.js"; // ✅ عدّل الاسم إذا كان User.js بحرف كبير
+import { sendOtpEmail } from "../services/mailtrapApi.js";
 
-// ===============================
-// Send OTP
-// ===============================
-export const sendOtp = async (req, res) => {
+const router = express.Router();
+
+/**
+ * POST /api/auth/send-otp
+ */
+router.post("/send-otp", async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -12,38 +15,30 @@ export const sendOtp = async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
 
-    // جلب المستخدم
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // توليد OTP (6 أرقام)
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // حفظ OTP + وقت الانتهاء
     user.emailOtp = otpCode;
     user.emailOtpExpires = Date.now() + 10 * 60 * 1000; // 10 دقائق
     await user.save();
 
-    // إرسال OTP عبر Mailtrap API (HTTPS)
     await sendOtpEmail(user.email, otpCode);
 
-    return res.json({
-      message: "OTP sent successfully",
-    });
+    return res.json({ message: "OTP sent successfully" });
   } catch (error) {
     console.error("Send OTP error:", error);
-    return res.status(500).json({
-      message: "Failed to send verification code",
-    });
+    return res.status(500).json({ message: "Failed to send OTP" });
   }
-};
+});
 
-// ===============================
-// Verify OTP
-// ===============================
-export const verifyOtp = async (req, res) => {
+/**
+ * POST /api/auth/verify-otp
+ */
+router.post("/verify-otp", async (req, res) => {
   try {
     const { email, otp } = req.body;
 
@@ -56,33 +51,28 @@ export const verifyOtp = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // تحقق من انتهاء الصلاحية
     if (!user.emailOtp || !user.emailOtpExpires) {
-      return res.status(400).json({ message: "No OTP found. Please request a new one." });
+      return res.status(400).json({ message: "No OTP found" });
     }
 
     if (Date.now() > user.emailOtpExpires) {
-      return res.status(400).json({ message: "OTP expired. Please request a new one." });
+      return res.status(400).json({ message: "OTP expired" });
     }
 
-    // تحقق من الكود
     if (user.emailOtp !== otp) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    // تفعيل الإيميل
     user.isEmailVerified = true;
     user.emailOtp = undefined;
     user.emailOtpExpires = undefined;
     await user.save();
 
-    return res.json({
-      message: "Email verified successfully",
-    });
+    return res.json({ message: "Email verified successfully" });
   } catch (error) {
     console.error("Verify OTP error:", error);
-    return res.status(500).json({
-      message: "Failed to verify OTP",
-    });
+    return res.status(500).json({ message: "Failed to verify OTP" });
   }
-};
+});
+
+export default router;
