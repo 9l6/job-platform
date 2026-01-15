@@ -1,5 +1,5 @@
 import User from "../models/User.js";
-import { sendOtpEmail } from "./mailtrapAPI.js"; // عدّل المسار إذا مختلف
+import { sendOtpEmail } from "./mailtrapApi.js"; // عدّل المسار إذا مختلف
 
 // ===============================
 // Send OTP
