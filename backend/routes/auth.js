@@ -1,4 +1,4 @@
-import User from "./user.js"; // عدّل المسار إذا مختلف
+import User from "../models/User.js";
 import { sendOtpEmail } from "./mailtrapAPI.js"; // عدّل المسار إذا مختلف
 
 // ===============================
